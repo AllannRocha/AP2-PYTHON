@@ -1,53 +1,49 @@
-from etl.abstract_etl import AbstractETL
-import pandas as pd  # Importando pandas
-from sqlalchemy import create_engine  # Importando create_engine de sqlalchemy
-from dotenv import load_dotenv
-import os
+import pandas as pd
+import pyodbc
+from sqlalchemy import create_engine, inspect
 
-# Carregar variáveis de ambiente do arquivo .env
-load_dotenv()
+# Configurações de conexão
+usuario = "ALLAN_GABRIELPC\\allan"
+servidor = "ALLAN_GABRIELPC\\SQLTROVATO"
+banco_de_dados = "Empresa_AP2"
+driver = "ODBC Driver 17 for SQL Server"
+origem = "C:/Users/allan/OneDrive/Documentos/MeuProjetos/AP2-PYTHON/empresa_banco_dados.xlsx"
 
+# Cria a conexão com o banco de dados
+try:
+    conn_str = f"mssql+pyodbc://{usuario}@{servidor}/{banco_de_dados}?driver={driver}&trusted_connection=yes"
+    engine = create_engine(conn_str)
+    connection = engine.connect()
+    print("Conexão com o banco de dados bem-sucedida.")
+except Exception as e:
+    print(f"Erro ao conectar ao banco de dados: {e}")
 
-class ETL(AbstractETL):
-    # TODO: defina aqui sua classe ETL
-    pass
+# Função para carregar cada aba do Excel como uma tabela no banco de dados
+def carregar_aba_no_banco(aba_nome, df):
+    # Tranforma colunas para o tipo correto se necessário
+    print(f"Transformando dados da aba '{aba_nome}'...")
+    # Aplica transformações necessárias
+    # Você pode especificar transformações adicionais para cada aba aqui, se necessário
+    
+    try:
+        # Carrega os dados no banco de dados
+        df.to_sql(aba_nome, con=engine, if_exists='replace', index=False)
+        print(f"Dados da aba '{aba_nome}' carregados com sucesso.")
+    except Exception as e:
+        print(f"Erro ao carregar os dados da aba '{aba_nome}': {e}")
 
-    def extract(self):
-        try:
-            self._dados_extraidos = pd.read_excel(self.origem)
-            print(f"Dados extraídos com sucesso de {self.origem}")
-        except Exception as e:
-            print(f"Erro ao extrair dados: {e}")
-            self._dados_extraidos = None
-
-    def transform(self):
-        if self._dados_extraidos is not None:
-            try:
-                # Exemplo de transformação: Limpeza de dados (remover linhas com valores nulos)
-                self._dados_transformados = self._dados_extraidos.dropna(axis=0, how='any')
-                
-                # Exemplo de transformação: Renomear as colunas para um formato mais adequado
-                self._dados_transformados.columns = [col.strip().lower().replace(" ", "_") for col in self._dados_transformados.columns]
-                
-                print("Dados transformados com sucesso.")
-            except Exception as e:
-                print(f"Erro ao transformar os dados: {e}")
-                self._dados_transformados = None
+# Lê todas as abas do Excel
+try:
+    xls = pd.ExcelFile(origem)
+    for aba_nome in xls.sheet_names:
+        df = pd.read_excel(xls, aba_nome)
+        if not df.empty:
+            print(f"Dados extraídos com sucesso da aba '{aba_nome}'.")
+            carregar_aba_no_banco(aba_nome, df)
         else:
-            print("Nenhum dado extraído para transformação.")
-            self._dados_transformados = None
-
-    def load(self):
-        if self._dados_transformados is not None:
-            try:
-                # Usar SQLAlchemy para criar uma conexão com o banco de dados
-                engine = create_engine(self.destino)
-                
-                # Carregar os dados no banco de dados (se a tabela já existir, ela será substituída)
-                self._dados_transformados.to_sql('tabela_destino', con=engine, if_exists='replace', index=False)
-                
-                print("Dados carregados com sucesso no destino.")
-            except Exception as e:
-                print(f"Erro ao carregar os dados: {e}")
-        else:
-            print("Nenhum dado transformado para carregar.")
+            print(f"A aba '{aba_nome}' está vazia.")
+except Exception as e:
+    print(f"Erro ao extrair dados: {e}")
+finally:
+    connection.close()
+    print("Conexão com o banco de dados encerrada.")

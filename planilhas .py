@@ -28,7 +28,7 @@ sheet_depende.append([1001, "Maria Silva", "F", "2015-07-20", "Filha"])
 sheet_depende.append([1002, "João Souza", "M", "2018-11-10", "Filho"])
 
 # Planilha 5: Trabalha-em
-sheet_trabalha_em = wb.create_sheet(title="Trabalha-em")
+sheet_trabalha_em = wb.create_sheet(title="Trabalha_em")
 sheet_trabalha_em.append(["nss-emp (chave)", "numero-proj (chave)", "horas"])
 sheet_trabalha_em.append([1001, 101, 40])
 sheet_trabalha_em.append([1002, 102, 35])
